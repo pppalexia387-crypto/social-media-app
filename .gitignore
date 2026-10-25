@@ -6,6 +6,7 @@ build/
 .kotlin
 
 data/
+config.properties
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

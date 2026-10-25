@@ -33,7 +33,7 @@ public class UserServiceImplTests {
         UserAccountValidator accountValidator = new UserAccountValidator();
         UserProfileValidator profileValidator = new UserProfileValidator();
 
-        userService = new UserServiceImpl(accountRepo, profileRepo, accountValidator, profileValidator, friendshipRepo);
+        userService = new UserServiceImpl(accountRepo, profileRepo, friendshipRepo, accountValidator, profileValidator);
     }
 
     @Test

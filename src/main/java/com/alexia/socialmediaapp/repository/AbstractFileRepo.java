@@ -6,8 +6,11 @@ import com.alexia.socialmediaapp.domain.validators.Validator;
 import com.alexia.socialmediaapp.exceptions.RepoException;
 import com.alexia.socialmediaapp.exceptions.ValidationException;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,32 +46,36 @@ public abstract class AbstractFileRepo<ID, T extends Entity<ID>> extends InMemor
 
     }
 
-    
-    public void loadData(){
-        Path path= Paths.get(fileName);
-        if(!Files.exists(path))
+    public void loadData() {
+        Path path = Paths.get(fileName);
+        if (!Files.exists(path)) {
             return;
-        try{
-            List<String> lines= Files.readAllLines(path);
-            for(String line : lines){
-                if(line.trim().isEmpty())
-                    continue;
+        }
 
-                try{
-                    validator.validate(extractEntity(line));
-                    super.save(extractEntity(line));
+        int lineNumber = 0;
+
+        try (BufferedReader br = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                lineNumber++;
+
+                if (line.trim().isEmpty()) {
+                    continue;
                 }
-                catch (ValidationException exp){
-                    throw new RepoException(exp.getMessage());
+
+                try {
+                    T entity = extractEntity(line);
+                    validator.validate(entity);
+                    super.save(entity);
+                } catch (ValidationException | RepoException exp) {
+                    throw new RepoException("Corrupt data at line " + lineNumber + " in file '" + fileName + "': " + exp.getMessage(), exp);
                 }
             }
-
+        } catch (IOException exp) {
+            throw new RepoException("Fatal error reading from file: " + fileName, exp);
         }
-        catch (IOException exp){
-            throw new RepoException(exp.getMessage());
-        }
-
     }
+
     protected void writeToFile() {
         Path path = Paths.get(fileName);
 
@@ -78,15 +85,15 @@ public abstract class AbstractFileRepo<ID, T extends Entity<ID>> extends InMemor
                 Files.createDirectories(parentDir);
             }
 
-            List<String> lines = new ArrayList<>();
-            for (T entity : super.findAll()) {
-                lines.add(createStringFromEntity(entity));
+            try (BufferedWriter bw = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+                for (T entity : super.findAll()) {
+                    bw.write(createStringFromEntity(entity));
+                    bw.newLine();
+                }
             }
 
-            Files.write(path, lines);
-
         } catch (IOException e) {
-            throw new RepoException(e.getMessage());
+            throw new RepoException("Error writing to file: " + fileName, e);
         }
     }
 

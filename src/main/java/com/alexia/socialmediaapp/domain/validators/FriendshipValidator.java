@@ -10,5 +10,6 @@ public class FriendshipValidator implements Validator<Friendship> {
         if (entity.getUser1Id().equals(entity.getUser2Id())) {
             throw new ValidationException("A user cannot be friends with themselves!");
         }
+
     }
 }

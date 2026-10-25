@@ -16,12 +16,12 @@ public class ConsoleUI {
     private final FriendshipService friendshipService;
     private final NetworkService networkService;
     private final Scanner scanner;
+
     public ConsoleUI(UserService userService, FriendshipService friendshipService, NetworkService networkService) {
         this.userService = userService;
         this.friendshipService= friendshipService;
         this.networkService= networkService;
         this.scanner= new Scanner(System.in);
-
     }
 
     private void menu(){
@@ -36,6 +36,7 @@ public class ConsoleUI {
         System.out.println("0.exit");
         System.out.println("===================================");
     }
+
     public void run() {
         boolean isRunning = true;
 
@@ -45,7 +46,7 @@ public class ConsoleUI {
             String command = scanner.nextLine();
 
             switch (command) {
-                case "1" -> {
+                case "1": {
                     System.out.print("Enter your name: ");
                     String name = scanner.nextLine();
 
@@ -71,8 +72,9 @@ public class ConsoleUI {
                     } catch (RepoException exp) {
                         System.out.println("Error: " + exp.getMessage());
                     }
+                    break;
                 }
-                case "2" -> {
+                case "2": {
                     System.out.print("Enter the username: ");
                     String userName = scanner.nextLine();
 
@@ -80,7 +82,7 @@ public class ConsoleUI {
                     String cmd = scanner.nextLine();
 
                     switch (cmd) {
-                        case "y" -> {
+                        case "y": {
                             try {
                                 userService.deleteUser(userName);
                                 System.out.println("User was successfully deleted!");
@@ -91,14 +93,20 @@ public class ConsoleUI {
                             } catch (RepoException exp) {
                                 System.out.println("Error: " + exp.getMessage());
                             }
+                            break;
                         }
-                        case "n" -> {
+                        case "n": {
                             System.out.println("Deletion cancelled.");
+                            break;
                         }
-                        default -> System.out.println("Invalid option.");
+                        default: {
+                            System.out.println("Invalid option.");
+                            break;
+                        }
                     }
+                    break;
                 }
-                case "3" ->{
+                case "3": {
                     boolean hasUsers=false;
                     for (UserProfile user : userService.getAllUserProfiles()) {
                         hasUsers=true;
@@ -106,15 +114,14 @@ public class ConsoleUI {
                     }
                     if(!hasUsers)
                         System.out.println("There are no users!");
-
+                    break;
                 }
-                case "4" -> {
+                case "4": {
                     System.out.print("Enter the first username: ");
                     String user1 = scanner.nextLine();
 
                     System.out.print("Enter the second username: ");
                     String user2 = scanner.nextLine();
-
 
                     try {
                         friendshipService.addFriend(user1,user2);
@@ -126,38 +133,45 @@ public class ConsoleUI {
                     } catch (RepoException exp) {
                         System.out.println("Error: " + exp.getMessage());
                     }
+                    break;
                 }
-                case "5" -> {
+                case "5": {
                     System.out.print("Enter the first username: ");
                     String user1 = scanner.nextLine();
 
                     System.out.print("Enter the second username: ");
                     String user2 = scanner.nextLine();
 
-
                     System.out.print("Are you sure? y/n: ");
                     String cmd = scanner.nextLine();
 
                     switch (cmd) {
-                        case "y" -> {
+                        case "y": {
                             try {
                                 friendshipService.removeFriend(user1,user2);
                                 System.out.println("Friendship was successfully deleted!");
-                            } catch (ServiceException exp) {
-                                System.out.println("Error: " + exp.getMessage());
-                            } catch (ValidationException exp) {
+                            }catch (ValidationException exp) {
                                 System.out.println("Error: " + exp.getMessage());
                             } catch (RepoException exp) {
                                 System.out.println("Error: " + exp.getMessage());
                             }
+                            catch (ServiceException exp) {
+                                System.out.println("Error: " + exp.getMessage());
+                            }
+                            break;
                         }
-                        case "n" -> {
+                        case "n": {
                             System.out.println("Deletion cancelled.");
+                            break;
                         }
-                        default -> System.out.println("Invalid option.");
+                        default: {
+                            System.out.println("Invalid option.");
+                            break;
+                        }
                     }
+                    break;
                 }
-                case "6"->{
+                case "6": {
                     try{
                         int nr=networkService.getNumberOfCommunities();
                         System.out.println("Number of communities: " + nr);
@@ -172,8 +186,9 @@ public class ConsoleUI {
                     catch(RepoException exp){
                         System.out.println(exp.getMessage());
                     }
+                    break;
                 }
-                case "7"->{
+                case "7": {
                     try{
                         for(Integer id: networkService.getMostSociableCommunity()){
                             UserProfile user= userService.getProfileDetails(id).get();
@@ -191,19 +206,23 @@ public class ConsoleUI {
                     catch(RepoException exp){
                         System.out.println(exp.getMessage());
                     }
+                    break;
                 }
-                case "8" ->{
+                case "8": {
                     for(Friendship f: friendshipService.getAllFriendships())
                         System.out.println(f.getUser1Id()+" "+f.getUser2Id());
+                    break;
                 }
-                case "0" -> {
+                case "0": {
                     System.out.println("Exiting...");
                     isRunning = false;
+                    break;
                 }
-                default -> System.out.println("Please enter a valid number from the menu!");
+                default: {
+                    System.out.println("Please enter a valid number from the menu!");
+                    break;
+                }
             }
         }
     }
-
-
 }
