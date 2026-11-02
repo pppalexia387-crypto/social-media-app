@@ -7,6 +7,7 @@ import com.alexia.socialmediaapp.domain.UserProfile;
 import com.alexia.socialmediaapp.domain.validators.FriendshipValidator;
 import com.alexia.socialmediaapp.domain.validators.UserAccountValidator;
 import com.alexia.socialmediaapp.domain.validators.UserProfileValidator;
+import com.alexia.socialmediaapp.domain.validators.Validator;
 
 public class DbRepoFactory implements RepoFactory {
     private final String dbUrl;
@@ -20,17 +21,17 @@ public class DbRepoFactory implements RepoFactory {
     }
 
     @Override
-    public Repository<Integer, UserProfile> createUserProfileRepo(UserProfileValidator validator) {
+    public Repository<Integer, UserProfile> createUserProfileRepo(Validator<UserProfile> validator) {
         return new UserProfileDbRepo(dbUrl, dbUser, dbPassword, validator);
     }
 
     @Override
-    public Repository<Integer, UserAccount> createUserAccountRepo(UserAccountValidator validator) {
-        return new UserAccountDbRepo(dbUrl, dbUser, dbPassword, validator);
+    public Repository<Integer, UserAccount> createUserAccountRepo(Validator<UserAccount> validator) {
+        return new UserAccountDbRepo(dbUrl, dbUser, dbPassword,validator);
     }
 
     @Override
-    public Repository<Tuple<Integer, Integer>, Friendship> createFriendshipRepo(FriendshipValidator validator) {
+    public Repository<Tuple<Integer, Integer>, Friendship> createFriendshipRepo(Validator<Friendship> validator) {
         return new FriendshipDbRepo(dbUrl, dbUser, dbPassword, validator);
     }
 }

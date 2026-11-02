@@ -10,6 +10,7 @@ import com.alexia.socialmediaapp.exceptions.ValidationException;
 import com.alexia.socialmediaapp.repository.Repository;
 
 import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * Implementation of the FriendshipService interface that manages friendship connections
@@ -44,12 +45,7 @@ public class FriendshipServiceImpl implements FriendshipService {
      * @throws RepoException if a repository error occurs while retrieving user data
      */
     private Integer findUserIdByUserName(String userName) {
-        for (UserProfile user : profileRepo.findAll()) {
-            if (user.getUserName().equals(userName)) {
-                return user.getId();
-            }
-        }
-        throw new ServiceException("User with username '" + userName + "' not found.");
+        return profileRepo.iteratorStream().filter(user -> user.getUserName().equals(userName)).findFirst().map(UserProfile::getId).orElseThrow(()->new ServiceException("User with username '" + userName + "' not found."));
     }
 
     /**
@@ -115,11 +111,14 @@ public class FriendshipServiceImpl implements FriendshipService {
      * @throws RepoException if corrupt data (friendships with missing users) is found in the repository
      */
     public void verifyFileIntegrity() {
-        for (Friendship f : friendshipRepo.findAll()) {
-            if (profileRepo.findOne(f.getUser1Id()).isEmpty() ||
-                    profileRepo.findOne(f.getUser2Id()).isEmpty()) {
-                throw new RepoException("Corrupt data: Friendship contains deleted or fake user IDs.");
-            }
-        }
+        Predicate<Friendship> firstUserMissing = f -> profileRepo.findOne(f.getUser1Id()).isEmpty();
+        Predicate<Friendship> secondUserMissing = f -> profileRepo.findOne(f.getUser2Id()).isEmpty();
+
+        friendshipRepo.findAll(firstUserMissing.or(secondUserMissing))
+                .stream()
+                .findFirst()
+                .ifPresent(f -> {
+                    throw new RepoException("Corrupt data: Friendship " + f.getUser1Id() + "/" + f.getUser2Id() + " contains deleted or fake user IDs.");
+                });
     }
 }

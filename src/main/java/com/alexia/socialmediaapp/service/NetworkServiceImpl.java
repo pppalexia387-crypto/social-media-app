@@ -7,6 +7,7 @@ import com.alexia.socialmediaapp.exceptions.RepoException;
 import com.alexia.socialmediaapp.repository.Repository;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * Implementation of the NetworkService interface.
@@ -35,16 +36,12 @@ public class NetworkServiceImpl implements NetworkService {
      */
     private Map<Integer, List<Integer>> buildAdjacencyList() {
         Map<Integer, List<Integer>> adjList = new HashMap<>();
-        for (UserProfile user : profileRepo.findAll()) {
-            adjList.put(user.getId(), new ArrayList<>());
-        }
+        profileRepo.iteratorStream().forEach(user -> adjList.put(user.getId(), new ArrayList<>()));
+        friendshipRepo.iteratorStream().filter((f)->adjList.containsKey(f.getUser1Id())&&  adjList.containsKey(f.getUser2Id())).forEach((f)->{
+            adjList.get(f.getUser1Id()).add(f.getUser2Id());
+            adjList.get(f.getUser2Id()).add(f.getUser1Id());
+        });
 
-        for (Friendship f : friendshipRepo.findAll()) {
-            if (adjList.containsKey(f.getUser1Id()) && adjList.containsKey(f.getUser2Id())) {
-                adjList.get(f.getUser1Id()).add(f.getUser2Id());
-                adjList.get(f.getUser2Id()).add(f.getUser1Id());
-            }
-        }
         return adjList;
     }
 
@@ -79,11 +76,8 @@ public class NetworkServiceImpl implements NetworkService {
      */
     private void dfs(Integer node, Set<Integer> visited, Map<Integer, List<Integer>> adjList) {
         visited.add(node);
-        for (Integer neighbor : adjList.get(node)) {
-            if (!visited.contains(neighbor)) {
-                dfs(neighbor, visited, adjList);
-            }
-        }
+        adjList.get(node).stream().filter(Predicate.not(visited::contains)).forEach(neighbor->dfs(neighbor, visited, adjList));
+
     }
 
     /**
@@ -101,26 +95,20 @@ public class NetworkServiceImpl implements NetworkService {
         List<Integer> mostSociableCommunity = new ArrayList<>();
         int absoluteMaxPath = -1;
 
-        for (Integer userId : adjList.keySet()) {
-            if (!visited.contains(userId)) {
-                List<Integer> currentCommunity = new ArrayList<>();
-                extractCommunity(userId, visited, adjList, currentCommunity);
-
-                int currentMaxPath = 0;
-                for (Integer startNode : currentCommunity) {
-                    int pathLength = longestPathFromNode(startNode, new HashSet<>(), adjList);
-                    if (pathLength > currentMaxPath) {
-                        currentMaxPath = pathLength;
-                    }
-                }
-
-                if (currentMaxPath > absoluteMaxPath) {
-                    absoluteMaxPath = currentMaxPath;
-                    mostSociableCommunity = currentCommunity;
-                }
-            }
-        }
-        return mostSociableCommunity;
+        return adjList.keySet().stream()
+                .filter(Predicate.not(visited::contains))
+                .map(userId -> {
+                    List<Integer> currentCommunity = new ArrayList<>();
+                    extractCommunity(userId, visited, adjList, currentCommunity);
+                    return currentCommunity;
+                })
+                .max(Comparator.comparingInt(community ->
+                        community.stream()
+                                .mapToInt(startNode -> longestPathFromNode(startNode, new HashSet<>(), adjList))
+                                .max()
+                                .orElse(0)
+                ))
+                .orElse(new ArrayList<>());
     }
 
     /**
@@ -134,11 +122,9 @@ public class NetworkServiceImpl implements NetworkService {
     private void extractCommunity(Integer node, Set<Integer> visited, Map<Integer, List<Integer>> adjList, List<Integer> community) {
         visited.add(node);
         community.add(node);
-        for (Integer neighbor : adjList.get(node)) {
-            if (!visited.contains(neighbor)) {
-                extractCommunity(neighbor, visited, adjList, community);
-            }
-        }
+        adjList.get(node).stream().filter(Predicate.not(visited::contains)).forEach(neighbor->extractCommunity(neighbor, visited, adjList, community));
+
+
     }
 
     /**

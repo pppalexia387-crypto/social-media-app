@@ -1,11 +1,9 @@
 package com.alexia.socialmediaapp.service;
 
-import com.alexia.socialmediaapp.domain.Friendship;
-import com.alexia.socialmediaapp.domain.Tuple;
-import com.alexia.socialmediaapp.domain.UserAccount;
-import com.alexia.socialmediaapp.domain.UserProfile;
+import com.alexia.socialmediaapp.domain.*;
 import com.alexia.socialmediaapp.domain.validators.UserAccountValidator;
 import com.alexia.socialmediaapp.domain.validators.UserProfileValidator;
+import com.alexia.socialmediaapp.domain.validators.Validator;
 import com.alexia.socialmediaapp.exceptions.RepoException;
 import com.alexia.socialmediaapp.exceptions.ServiceException;
 import com.alexia.socialmediaapp.exceptions.ValidationException;
@@ -13,16 +11,15 @@ import com.alexia.socialmediaapp.repository.Repository;
 
 import java.util.*;
 
-/**
- * Implementation of the UserService interface that manages user accounts, profiles,
- * and their associated dependencies like friendships.
- */
+import static com.alexia.socialmediaapp.domain.UserAccountCriteria.hasEmail;
+
+
 public class UserServiceImpl implements UserService {
     private final Repository<Integer, UserAccount> accountRepo;
     private final Repository<Integer, UserProfile> profileRepo;
     private final Repository<Tuple<Integer, Integer>, Friendship> friendshipRepo;
-    private final UserAccountValidator accountValidator;
-    private final UserProfileValidator profileValidator;
+    private final Validator<UserAccount> accountValidator;
+    private final Validator<UserProfile> profileValidator;
 
     /**
      * Constructs a new UserServiceImpl with the necessary repositories and validators.
@@ -33,17 +30,22 @@ public class UserServiceImpl implements UserService {
      * @param accountValidator the validator for UserAccount entities
      * @param profileValidator the validator for UserProfile entities
      */
-    public UserServiceImpl(Repository<Integer, UserAccount> accountRepo,
-                           Repository<Integer, UserProfile> profileRepo,
-                           Repository<Tuple<Integer, Integer>, Friendship> friendshipRepo,
-                           UserAccountValidator accountValidator,
-                           UserProfileValidator profileValidator) {
-        this.accountRepo = accountRepo;
-        this.profileRepo = profileRepo;
-        this.friendshipRepo = friendshipRepo;
-        this.accountValidator = accountValidator;
-        this.profileValidator = profileValidator;
-    }
+
+        public UserServiceImpl(Repository<Integer, UserAccount> accountRepo,
+                               Repository<Integer, UserProfile> profileRepo,
+                               Repository<Tuple<Integer, Integer>, Friendship> friendshipRepo,
+                               Validator<UserAccount> accountValidator,
+                               Validator<UserProfile> profileValidator) {
+
+            this.accountRepo = accountRepo;
+            this.profileRepo = profileRepo;
+            this.friendshipRepo = friendshipRepo;
+            this.accountValidator = accountValidator;
+            this.profileValidator = profileValidator;
+        }
+
+
+
 
     /**
      * Adds a new user to the application, creating both an account and a profile.
@@ -60,23 +62,19 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void addUser(String email, String phone, String name, String passwordHash, String userName) {
-        for (UserAccount account : accountRepo.findAll()) {
-            if (account.getEmail().equals(email)) {
-                throw new ServiceException("Email is already taken!");
-            }
-        }
 
-        for (UserProfile profile : profileRepo.findAll()) {
-            if (profile.getUserName().equals(userName)) {
-                throw new ServiceException("Username is already taken!");
-            }
-        }
+        if(!accountRepo.findAll(UserAccountCriteria.hasEmail(email)).isEmpty())
+            throw new ServiceException("Email is already taken!");
+        if(!profileRepo.findAll(UserProfileCriteria.hasUserName(userName)).isEmpty())
+            throw new ServiceException("Username is already taken!");
 
         UserAccount userA = new UserAccount(email, phone, passwordHash);
         UserProfile userP = new UserProfile(name, userName);
 
         accountValidator.validate(userA);
         profileValidator.validate(userP);
+
+
         accountRepo.save(userA);
         userP.setId(userA.getId());
         profileRepo.save(userP);
@@ -106,16 +104,13 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void deleteUser(String userName) {
-        Integer id = null;
-        for (UserProfile profile : profileRepo.findAll()) {
-            if (profile.getUserName().equals(userName)) {
-                id = profile.getId();
-            }
-        }
+        Optional<UserProfile> res = profileRepo.findAll(UserProfileCriteria.hasUserName(userName))
+                .stream()
+                .findFirst();
 
-        if (id == null) {
-            throw new ServiceException("Cannot delete: User with username '" + userName + "' not found.");
-        }
+        Integer id = res.map(UserProfile::getId)
+                .orElseThrow(() -> new ServiceException("Cannot delete: User with username '" + userName + "' not found."));
+
         accountRepo.delete(id);
         profileRepo.delete(id);
         deleteAllFriendshipsForUser(id);
@@ -127,16 +122,12 @@ public class UserServiceImpl implements UserService {
      * @param userId the ID of the user whose friendships should be deleted
      */
     private void deleteAllFriendshipsForUser(Integer userId) {
-        List<Tuple<Integer, Integer>> friendshipsToDelete = new ArrayList<>();
-        for (Friendship f : friendshipRepo.findAll()) {
-            if (f.getUser1Id().equals(userId) || f.getUser2Id().equals(userId)) {
-                friendshipsToDelete.add(new Tuple<>(f.getUser1Id(), f.getUser2Id()));
-            }
-        }
-
-        for (Tuple<Integer, Integer> tuple : friendshipsToDelete) {
-            friendshipRepo.delete(tuple);
-        }
+        friendshipRepo.findAll(
+                        FriendshipCriteria.hasFirstUser(userId).or(FriendshipCriteria.hasSecondUser(userId))
+                )
+                .stream()
+                .map(f -> new Tuple<>(f.getUser1Id(), f.getUser2Id()))
+                .forEach(friendshipRepo::delete);
     }
 
     /**
@@ -182,12 +173,17 @@ public class UserServiceImpl implements UserService {
      * @throws RepoException if corrupt data (like duplicate usernames) is found in the repository
      */
     public void verifyFileIntegrity() {
-        Set<String> uniqueUsernames = new HashSet<>();
-
-        for (UserProfile profile : profileRepo.findAll()) {
-            if (!uniqueUsernames.add(profile.getUserName())) {
-                throw new RepoException("Corrupt data: Duplicate username '" + profile.getUserName() + "' found in file.");
-            }
-        }
+        profileRepo.iteratorStream()
+                .collect( java.util.stream.Collectors.groupingBy(
+                        UserProfile::getUserName,
+                        java.util.stream.Collectors.counting()
+                ))
+                .entrySet().stream()
+                .filter(entry -> entry.getValue() > 1)
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .ifPresent(userName -> {
+                    throw new RepoException("Corrupt data: Duplicate username '" + userName + "' found in file.");
+                });
     }
 }

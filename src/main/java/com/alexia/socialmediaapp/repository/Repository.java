@@ -3,7 +3,13 @@ package com.alexia.socialmediaapp.repository;
 import com.alexia.socialmediaapp.domain.Entity;
 import com.alexia.socialmediaapp.exceptions.RepoException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Generic CRUD operations repository for managing entities.
@@ -13,6 +19,24 @@ import java.util.Optional;
  */
 public interface Repository<ID, T extends Entity<ID>> {
 
+        /**
+         * Retrieves all entities from the repository that match the given condition.
+         *
+         * @param filter the condition used to filter the entities; must not be null
+         * @return a List containing all entities that satisfy the predicate
+         * @throws RepoException if the provided predicate is null
+         */
+        default List<T> findAll(Predicate<T> filter){
+                if(filter==null)
+                        throw new RepoException("Predicate cannot be null!");
+                return iteratorStream()
+                        .filter(java.util.Objects::nonNull)
+                        .filter(filter)
+                        .collect(Collectors.toCollection(ArrayList::new));
+        };
+        default Stream<T> iteratorStream(){
+                return StreamSupport.stream(findAll().spliterator(),false);
+        }
         /**
          * Retrieves all entities managed by the repository.
          *

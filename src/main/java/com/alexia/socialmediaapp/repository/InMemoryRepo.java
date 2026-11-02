@@ -1,23 +1,29 @@
 package com.alexia.socialmediaapp.repository;
 import com.alexia.socialmediaapp.domain.Entity;
-import com.alexia.socialmediaapp.domain.validators.Validator;
 import com.alexia.socialmediaapp.exceptions.RepoException;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+
 public class InMemoryRepo<ID, T extends Entity<ID>> implements Repository<ID, T> {
     protected Map<ID, T> entities = new ConcurrentHashMap<>();
-    private Integer idC=1;
+    private final Function<Set<ID>, ID> idGenerator;
 
+    public InMemoryRepo(Function<Set<ID>, ID> idGenerator) {
+        this.idGenerator = idGenerator;
+    }
 
-
+    public InMemoryRepo() {
+        this.idGenerator = null;
+    }
     @Override
     public Iterable<T> findAll() {
         return entities.values();
     }
 
-    //to do: add findallbyid in friendshipRepo
     @Override
     public Optional<T> findOne(ID id) {
         if(id==null)
@@ -34,9 +40,8 @@ public class InMemoryRepo<ID, T extends Entity<ID>> implements Repository<ID, T>
         if(entity.getId() != null && entities.containsKey(entity.getId()))
             return Optional.of(entity);
 
-        if(entity.getId()==null){
-            entity.setId((ID) idC);
-            idC++;
+        if (entity.getId() == null && idGenerator != null) {
+            entity.setId(idGenerator.apply(entities.keySet()));
         }
 
         entities.put(entity.getId(), entity);
@@ -67,6 +72,8 @@ public class InMemoryRepo<ID, T extends Entity<ID>> implements Repository<ID, T>
         }
         return Optional.of(entity);
     }
+
+
 
 
 

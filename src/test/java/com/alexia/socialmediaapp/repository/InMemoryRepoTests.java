@@ -1,9 +1,6 @@
 package com.alexia.socialmediaapp.repository;
 
 import com.alexia.socialmediaapp.domain.UserAccount;
-import com.alexia.socialmediaapp.domain.UserProfile;
-import com.alexia.socialmediaapp.domain.validators.UserAccountValidator;
-import com.alexia.socialmediaapp.domain.validators.Validator;
 import com.alexia.socialmediaapp.exceptions.RepoException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

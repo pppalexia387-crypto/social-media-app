@@ -2,6 +2,7 @@ package com.alexia.socialmediaapp.repository;
 
 import com.alexia.socialmediaapp.domain.UserAccount;
 import com.alexia.socialmediaapp.domain.validators.UserAccountValidator;
+import com.alexia.socialmediaapp.domain.validators.Validator;
 
 import java.util.Optional;
 
@@ -9,9 +10,9 @@ public class UserAccountDbRepo implements Repository<Integer, UserAccount> {
     private String dbUrl;
     private String dbUser;
     private String dbPassword;
-    private UserAccountValidator validator;
+    private Validator<UserAccount> validator;
 
-    public UserAccountDbRepo(String dbUrl, String dbUser, String dbPassword, UserAccountValidator validator) {
+    public UserAccountDbRepo(String dbUrl, String dbUser, String dbPassword, Validator<UserAccount> validator) {
         this.dbUrl = dbUrl;
         this.dbUser = dbUser;
         this.dbPassword = dbPassword;

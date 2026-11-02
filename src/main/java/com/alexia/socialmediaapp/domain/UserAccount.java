@@ -1,6 +1,7 @@
 package com.alexia.socialmediaapp.domain;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 public class UserAccount extends Entity<Integer> {
     private String email;
@@ -15,6 +16,7 @@ public class UserAccount extends Entity<Integer> {
         this.passwordHash = passwordHash;
         this.mfaEnabled = false;
         this.createdAt = Instant.now();
+
     }
     public UserAccount(String email, String phoneNr, String passwordHash, boolean mfaEnabled, Instant createdAt) {
         this.email = email;
@@ -59,5 +61,7 @@ public class UserAccount extends Entity<Integer> {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+
 
 }

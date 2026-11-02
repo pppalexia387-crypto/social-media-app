@@ -4,7 +4,6 @@ import com.alexia.socialmediaapp.domain.Friendship;
 import com.alexia.socialmediaapp.domain.Tuple;
 import com.alexia.socialmediaapp.domain.UserAccount;
 import com.alexia.socialmediaapp.domain.UserProfile;
-import com.alexia.socialmediaapp.domain.validators.FriendshipValidator;
 import com.alexia.socialmediaapp.domain.validators.UserAccountValidator;
 import com.alexia.socialmediaapp.domain.validators.UserProfileValidator;
 import com.alexia.socialmediaapp.exceptions.ServiceException;
